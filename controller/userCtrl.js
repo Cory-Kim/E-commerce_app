@@ -39,12 +39,139 @@ const loginUserCtrl = asyncHandler(async (req, res) =>
       email: findUser?.email,
       mobile: findUser?.mobile,
       token: generateToken(findUser?._id),
-      
+
     });
     
   } else {
     throw new Error("Invalid Credentials");
   }
-})
 
-module.exports = {createUser, loginUserCtrl}
+});
+
+
+// Get all users
+const getAllUser = asyncHandler(async (req, res) =>
+{
+  try {
+    const getUsers = await User.find()
+    res.json(getUsers);
+
+  } catch (error) {
+    throw new Error(error)
+  }
+});
+
+const getSingleUser = asyncHandler(async (req, res) =>
+{
+  const { id } = req.params;
+  
+  try {
+    const singleUser = await User.findById(id);
+    res.json({
+      singleUser,
+    })
+
+  } catch (error) {
+    throw new Error(error);
+  }
+
+});
+
+// Update a user
+const updateUser = asyncHandler(async (req, res) =>
+{
+  const { id } = req.user;
+  
+  try {
+      const updatedUser = await User.findByIdAndUpdate(id, {
+        firstname: req?.body?.firstname,
+        lastname: req?.body?.lastname,
+        email: req?.body?.email,
+        mobile: req?.body?.mobile,
+      },
+
+      {
+        new: true,
+      }
+      
+    );
+    res.json({
+      updatedUser,
+    });
+
+  } catch (error) {
+    throw new Error(error);
+  }
+});
+
+// Delete a user
+const deleteSingleUser = asyncHandler(async (req, res) =>
+{
+  const { id } = req.params;
+  
+  try {
+    const deletedUser = await User.findByIdAndDelete(id);
+    res.json({
+      deletedUser,
+    })
+
+  } catch (error) {
+    throw new Error(error);
+  }
+
+});
+
+const blockUser = asyncHandler(async (req, res) =>
+{
+  const { id } = req.params;
+
+  try {
+    const block = await User.findByIdAndUpdate(id,
+    {
+      isBlocked: true,
+    },
+    {
+      new: true,
+    })
+    
+    res.json({
+      message: "User blocked",
+    })
+  
+
+  } catch (error) {
+    throw new Error(error);
+  }
+});
+
+const unblockUser = asyncHandler(async (req, res) =>
+{
+  const { id } = req.params;
+
+  try {
+    const unblock = await User.findByIdAndUpdate(id, {
+      isBlocked: false,
+    },
+    {
+      new: true,
+    })
+    
+    res.json({
+      message: "User unblocked",
+    })
+
+  } catch (error) {
+    throw new Error(error);
+  }
+});
+
+module.exports = {
+  createUser,
+  loginUserCtrl,
+  getAllUser,
+  getSingleUser,
+  deleteSingleUser,
+  updateUser,
+  blockUser,
+  unblockUser
+}
