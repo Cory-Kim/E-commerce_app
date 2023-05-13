@@ -7,6 +7,7 @@ const authRouter = require('./routes/authRoute');
 const bodyParser = require('body-parser');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const cookieParser = require('cookie-parser');
+const productRouter = require('./routes/productRoute');
 
 dbConnect();
 
@@ -15,6 +16,8 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
 
 app.use('/api/user', authRouter)
+
+app.use('/api/product', productRouter)
 
 // Have to pass error middleware after router middlewares
 app.use(notFound)
