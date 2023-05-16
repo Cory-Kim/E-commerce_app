@@ -8,6 +8,8 @@ const bodyParser = require('body-parser');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const cookieParser = require('cookie-parser');
 const productRouter = require('./routes/productRoute');
+const blogRouter = require('./routes/blogRoute');
+
 const morgan = require('morgan');
 
 dbConnect();
@@ -18,9 +20,8 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
 
 app.use('/api/user', authRouter)
-
 app.use('/api/product', productRouter)
-
+app.use('/api/blog', blogRouter);
 
 // Have to pass error middleware after router middlewares
 app.use(notFound)
