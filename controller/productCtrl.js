@@ -137,5 +137,5 @@ module.exports = {
   getSingleProduct,
   getAllProducts,
   updateProduct,
-  deleteProduct
+  deleteProduct,
 };

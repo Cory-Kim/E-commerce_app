@@ -9,6 +9,7 @@ const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const cookieParser = require('cookie-parser');
 const productRouter = require('./routes/productRoute');
 const blogRouter = require('./routes/blogRoute');
+const categoryRouter = require('./routes/categoryRoute');
 
 const morgan = require('morgan');
 
@@ -22,6 +23,7 @@ app.use(cookieParser())
 app.use('/api/user', authRouter)
 app.use('/api/product', productRouter)
 app.use('/api/blog', blogRouter);
+app.use('/api/category', categoryRouter);
 
 // Have to pass error middleware after router middlewares
 app.use(notFound)

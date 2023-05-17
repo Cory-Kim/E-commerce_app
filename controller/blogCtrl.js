@@ -33,6 +33,7 @@ const getBlog = asyncHandler(async (req, res) => {
   const { id } = req.params;
   validateMongoDbId(id);
   try {
+    const getBlog = await Blog.findById(id).populate('likes').populate('dislikes');
     const updatedBlog = await Blog.findByIdAndUpdate(
       id,
       { $inc: { numViews: 1 } },
@@ -41,7 +42,7 @@ const getBlog = asyncHandler(async (req, res) => {
 
     const blog = await Blog.findById(id);
     
-    res.json(blog);
+    res.json(getBlog);
   } catch (error) {
     throw new Error(error);
   }
@@ -122,7 +123,7 @@ const likeBlog = asyncHandler(async (req, res) =>
 const dislikeBlog = asyncHandler(async (req, res) =>
 {
   const { blogId } = req.body;
-  // validateMongoDbId(blogId);
+  validateMongoDbId(blogId);
   const blog = await Blog.findById(blogId);
 
   const loginUserId = req?.user?._id;
@@ -160,6 +161,8 @@ const dislikeBlog = asyncHandler(async (req, res) =>
   }
 
 });
+
+
 
 
 module.exports = {
