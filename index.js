@@ -12,6 +12,7 @@ const blogRouter = require('./routes/blogRoute');
 const prodcategoryRouter = require('./routes/prodcategoryRoute');
 const blogcategoryRouter = require('./routes/blogCatRoute');
 const brandRouter = require('./routes/brandRoute');
+const couponRouter = require('./routes/couponRoute');
 
 const morgan = require('morgan');
 
@@ -28,6 +29,7 @@ app.use('/api/blog', blogRouter);
 app.use('/api/prodcategory', prodcategoryRouter);
 app.use('/api/blogcategory', blogcategoryRouter);
 app.use('/api/brand', brandRouter);
+app.use('/api/coupon', couponRouter);
 
 // Have to pass error middleware after router middlewares
 app.use(notFound)
