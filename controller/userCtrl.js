@@ -354,26 +354,9 @@ const resetPassword = asyncHandler(async (req, res) =>
 
 });
 
-// const getWishlist = asyncHandler(async (req, res) =>
-// {
-//   const { _id } = req.user;
-
-//   try {
-//     // const findUser = await User.findById(id).populate("wishlist");
-//     // res.json(findUser);
-
-//     const findUser = await User.findById(_id).populate("wishlist");
-//     const populatedUser = findUser.wishlist.toObject();
-//     res.json(populatedUser);
-
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-
-// });
-
 const getWishlist = asyncHandler(async (req, res) => {
   const { _id } = req.user;
+  validateMongoDbId(_id);
 
   try {
     const findUser = await User.findById(_id).populate("wishlist");
@@ -381,6 +364,32 @@ const getWishlist = asyncHandler(async (req, res) => {
   } catch (error) {
     throw new Error(error);
   }
+});
+
+// Save user Address
+const saveAddress = asyncHandler(async (req, res, next) =>
+{
+  const { _id } = req.user;
+  validateMongoDbId(_id);
+
+  try {
+      const updatedUser = await User.findByIdAndUpdate(_id, {
+        address: req?.body?.address,
+      },
+
+      {
+        new: true,
+      }
+      
+    );
+    res.json({
+      updatedUser,
+    });
+
+  } catch (error) {
+  throw new Error(error);
+}
+
 });
 
 
@@ -399,5 +408,6 @@ module.exports = {
   forgotPasswordToken,
   resetPassword,
   loginAdmin,
-  getWishlist
+  getWishlist,
+  saveAddress
 }
