@@ -64,6 +64,46 @@ const loginUserCtrl = asyncHandler(async (req, res) =>
 
 });
 
+// adminlogin
+
+const loginAdmin = asyncHandler(async (req, res) =>
+{
+  const { email, password } = req.body;
+  
+  //check if user exits or not
+  const findAdmin = await User.findOne({ email });
+
+  // check 
+  if (findAdmin.role !== 'admin') {
+    throw new Error("Not Authorized");
+  }
+
+  if (findAdmin && await findAdmin.isPasswordMatched(password)) {
+    const refreshToken = await generateRefreshToken(findAdmin?._id);
+    const updateAdmin = await User.findByIdAndUpdate(findAdmin.id, {
+      refreshToken: refreshToken,
+    }, { new: true });
+    
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      maxAge: 72*60*60*1000,
+    })
+      
+    res.json({
+      _id: findAdmin?._id,
+      firstname: findAdmin?.firstname,
+      lastname: findAdmin?.lastname,
+      email: findAdmin?.email,
+      mobile: findAdmin?.mobile,
+      token: generateToken(findAdmin?._id),
+
+    });
+    
+  } else {
+    throw new Error("Invalid Credentials");
+  }
+
+});
 
 // Get all users
 const getAllUser = asyncHandler(async (req, res) =>
@@ -314,6 +354,36 @@ const resetPassword = asyncHandler(async (req, res) =>
 
 });
 
+// const getWishlist = asyncHandler(async (req, res) =>
+// {
+//   const { _id } = req.user;
+
+//   try {
+//     // const findUser = await User.findById(id).populate("wishlist");
+//     // res.json(findUser);
+
+//     const findUser = await User.findById(_id).populate("wishlist");
+//     const populatedUser = findUser.wishlist.toObject();
+//     res.json(populatedUser);
+
+//   } catch (error) {
+//     throw new Error(error);
+//   }
+
+// });
+
+const getWishlist = asyncHandler(async (req, res) => {
+  const { _id } = req.user;
+
+  try {
+    const findUser = await User.findById(_id).populate("wishlist");
+    res.json(findUser);
+  } catch (error) {
+    throw new Error(error);
+  }
+});
+
+
 module.exports = {
   createUser,
   loginUserCtrl,
@@ -327,5 +397,7 @@ module.exports = {
   logout,
   updatePassword,
   forgotPasswordToken,
-  resetPassword
+  resetPassword,
+  loginAdmin,
+  getWishlist
 }
