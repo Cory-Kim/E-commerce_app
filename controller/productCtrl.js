@@ -1,139 +1,122 @@
-const Product = require('../models/productModel');
-const asyncHandler = require('express-async-handler');
-const slugify = require('slugify');
-const User = require('../models/userModel');
-const validateMongoDbId = require('../utils/validateMongodbid');
-const cloudinaryUploadImg = require('../utils/cloudinary');
-const fs = require('fs');
+const Product = require("../models/productModel");
+const asyncHandler = require("express-async-handler");
+const slugify = require("slugify");
+const User = require("../models/userModel");
+const validateMongoDbId = require("../utils/validateMongodbid");
+const cloudinaryUploadImg = require("../utils/cloudinary");
+const fs = require("fs");
 
+const createProduct = asyncHandler(async (req, res) => {
+    try {
+        if (req.body.title) {
+            req.body.slug = slugify(req.body.title);
+        }
 
-const createProduct = asyncHandler(async (req, res) =>
-{
+        const newProduct = await Product.create(req.body);
 
-  try {
-
-    if (req.body.title) {
-      req.body.slug = slugify(req.body.title);
+        res.json(newProduct);
+    } catch (error) {
+        throw new Error(error);
     }
-
-    const newProduct = await Product.create(req.body);
-
-    res.json(newProduct);
-
-  } catch (error) {
-    throw new Error(error);
-  }
-
 });
 
-const updateProduct = asyncHandler(async (req, res) =>
-{
-  const { id } = req.params;
-  
+const updateProduct = asyncHandler(async (req, res) => {
+    const { id } = req.params;
 
-  try {
-    if (req.body.title) {
-      req.body.slug = slugify(req.body.title);
+    try {
+        if (req.body.title) {
+            req.body.slug = slugify(req.body.title);
+        }
+        const updatedProduct = await Product.findOneAndUpdate(
+            { _id: id },
+            req.body,
+            { new: true }
+        );
+
+        res.json(updatedProduct);
+    } catch (error) {
+        throw new Error(error);
     }
-    const updatedProduct = await Product.findOneAndUpdate({_id: id}, req.body, { new: true });
-
-    res.json(updatedProduct);
-
-  } catch (error) {
-    throw new Error(error);
-  }
-  
 });
 
-const deleteProduct = asyncHandler(async (req, res) =>
-{
-  const { id } = req.params;
-  
+const deleteProduct = asyncHandler(async (req, res) => {
+    const { id } = req.params;
 
-  try {
-    const deletedProduct = await Product.findByIdAndDelete({ _id: id });
-    res.json(deletedProduct);
-
-  } catch (error) {
-    throw new Error(error);
-  }
-  
+    try {
+        const deletedProduct = await Product.findByIdAndDelete({ _id: id });
+        res.json(deletedProduct);
+    } catch (error) {
+        throw new Error(error);
+    }
 });
 
-const getSingleProduct = asyncHandler(async (req, res) =>
-{
-  const { id } = req.params;
-  try {
-    
-    const findProduct = await Product.findById(id);
-    res.json(findProduct);
-
-  } catch (error) {
-    throw new Error(error);
-  }
+const getSingleProduct = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    try {
+        const findProduct = await Product.findById(id);
+        res.json(findProduct);
+    } catch (error) {
+        throw new Error(error);
+    }
 });
 
-const getAllProducts = asyncHandler(async (req, res) =>
-{
-  try {
+const getAllProducts = asyncHandler(async (req, res) => {
+    try {
+        // Filtering price
 
-    // Filtering price
+        const queryObj = { ...req.query };
+        const excludeFields = ["page", "sort", "limit", "fields"];
+        // delete the fields that is included in the array.
+        excludeFields.forEach((el) => delete queryObj[el]);
 
-    const queryObj = { ...req.query };
-    const excludeFields = ['page', 'sort', 'limit', 'fields'];
-    // delete the fields that is included in the array.
-    excludeFields.forEach((el) => delete queryObj[el]);
+        //change to JSON format
+        let queryStr = JSON.stringify(queryObj);
+        // change gte to $gte and so on
+        queryStr = queryStr.replace(
+            /\b(gte|gt|lte|lt)\b/g,
+            (match) => `$${match}`
+        );
 
-    //change to JSON format
-    let queryStr = JSON.stringify(queryObj);
-    // change gte to $gte and so on
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${ match }`);
-    
-    // change JSON format back to Javascript object and find the data
-    let query = Product.find(JSON.parse(queryStr));
+        // change JSON format back to Javascript object and find the data
+        let query = Product.find(JSON.parse(queryStr));
 
+        // Sorting
+        if (req.query.sort) {
+            const sortBy = req.query.sort.split(",").join(" ");
+            query = query.sort(sortBy);
+        } else {
+            query = query.sort("-createdAt");
+        }
 
-    // Sorting
-    if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(sortBy);
+        // limiting the fields
+        if (req.query.fields) {
+            const fields = req.query.fields.split(",").join(" ");
+            query = query.select(fields);
+        } else {
+            query = query.select("-__v");
+        }
 
-    } else {
-      query = query.sort('-createdAt');
+        // Pagination
+        const page = req.query.page;
+        const limit = req.query.limit;
+        const skip = (page - 1) * limit;
+
+        query = query.skip(skip).limit(limit);
+
+        if (req.query.page) {
+            const productCount = await Product.countDocuments();
+
+            if (skip >= productCount) {
+                throw new Error("This Page does not exists");
+            }
+        }
+
+        const product = await query;
+
+        res.json(product);
+    } catch (error) {
+        throw new Error(error);
     }
-
-    // limiting the fields
-    if (req.query.fields) {
-      const fields = req.query.fields.split(",").join(" ");
-      query = query.select(fields);
-
-    } else {
-      query = query.select('-__v');
-    }
-
-    // Pagination
-    const page = req.query.page;
-    const limit = req.query.limit;
-    const skip = (page - 1) * limit;
-
-    query = query.skip(skip).limit(limit);
-
-    if (req.query.page) {
-      const productCount = await Product.countDocuments();
-      
-      if (skip >= productCount) {
-        throw new Error('This Page does not exists');
-      }
-    }
-
-    const product = await query;
-
-    res.json(product);
-
-  } catch (error) {
-    throw new Error(error);
-  }
-
 });
 
 // const addToWishlist = asyncHandler(async (req, res) =>
@@ -180,137 +163,135 @@ const getAllProducts = asyncHandler(async (req, res) =>
 // });
 
 const addToWishlist = asyncHandler(async (req, res) => {
-  const { _id } = req.user;
-  const { prodId } = req.body;
+    const { _id } = req.user;
+    const { prodId } = req.body;
 
-  try {
-    const user = await User.findById(_id);
-    const alreadyAdded = user.wishlist.find((id) => id.toString() === prodId);
+    try {
+        const user = await User.findById(_id);
+        const alreadyAdded = user.wishlist.find(
+            (id) => id.toString() === prodId
+        );
 
-    if (alreadyAdded) {
-      await User.findByIdAndUpdate(
-        _id,
-        {
-          $pull: { wishlist: prodId },
-        },
-        {
-          new: true,
+        if (alreadyAdded) {
+            await User.findByIdAndUpdate(
+                _id,
+                {
+                    $pull: { wishlist: prodId },
+                },
+                {
+                    new: true,
+                }
+            );
+        } else {
+            await User.findByIdAndUpdate(
+                _id,
+                {
+                    $push: { wishlist: prodId },
+                },
+                {
+                    new: true,
+                }
+            );
         }
-      );
-    } else {
-      await User.findByIdAndUpdate(
-        _id,
-        {
-          $push: { wishlist: prodId },
-        },
-        {
-          new: true,
-        }
-      );
+
+        const updatedUser = await User.findById(_id);
+        res.json(updatedUser);
+    } catch (error) {
+        throw new Error(error);
     }
-
-    const updatedUser = await User.findById(_id);
-    res.json(updatedUser);
-  } catch (error) {
-    throw new Error(error);
-  }
 });
 
+const rating = asyncHandler(async (req, res) => {
+    const { _id } = req.user;
+    const { star, prodId, comment } = req.body;
 
-const rating = asyncHandler(async (req, res) =>
-{
-  const { _id } = req.user;
-  const { star, prodId, comment } = req.body;
+    try {
+        const product = await Product.findById(prodId);
+        let alreadyRated = product.ratings.find(
+            (userId) => userId.postedby.toString() === _id.toString()
+        );
 
-  try {
-
-    const product = await Product.findById(prodId);
-    let alreadyRated = product.ratings.find((userId) => userId.postedby.toString() === _id.toString());
-
-    if (alreadyRated) {
-
-      const updateRating = await Product.updateOne(
-        {
-          ratings: { $elemMatch: alreadyRated },
-        },
-        {
-          $set: { "ratings.$.star": star, "ratings.$.comment": comment },
-        },
-        {
-          new: true,
+        if (alreadyRated) {
+            const updateRating = await Product.updateOne(
+                {
+                    ratings: { $elemMatch: alreadyRated },
+                },
+                {
+                    $set: {
+                        "ratings.$.star": star,
+                        "ratings.$.comment": comment,
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+        } else {
+            const rateProduct = await Product.findByIdAndUpdate(
+                prodId,
+                {
+                    $push: {
+                        ratings: {
+                            star: star,
+                            comment: comment,
+                            postedby: _id,
+                        },
+                    },
+                },
+                { new: true }
+            );
         }
-      );
-    
-    } else {
-      const rateProduct = await Product.findByIdAndUpdate(prodId, {
-        $push: {
-          ratings: {
-            star: star,
-            comment: comment,
-            postedby: _id,
-          },
-        },
-      }, { new: true });
-      
+
+        const getAllRatings = await Product.findById(prodId);
+        let totalRating = getAllRatings.ratings.length;
+        let sum = getAllRatings.ratings
+            .map((item) => item.star)
+            .reduce((prev, curr) => prev + curr, 0);
+        let actualRating = Math.round(sum / totalRating);
+
+        let finalProduct = await Product.findByIdAndUpdate(
+            prodId,
+            {
+                totalrating: actualRating,
+            },
+            { new: true }
+        );
+
+        res.json(finalProduct);
+    } catch (error) {
+        throw new Error(error);
     }
-
-    const getAllRatings = await Product.findById(prodId);
-    let totalRating = getAllRatings.ratings.length;
-    let sum = getAllRatings.ratings.map((item) => item.star).reduce((prev, curr) => prev + curr, 0);
-    let actualRating = Math.round(sum / totalRating);
-    
-    let finalProduct = await Product.findByIdAndUpdate(prodId, {
-      totalrating: actualRating,
-    }, { new: true });
-
-    res.json(finalProduct);
-
-  } catch (error) {
-    throw new Error(error);
-  }
 });
 
-const uploadImages = asyncHandler(async (req, res) =>
-{
-  const { id } = req.params;
-  validateMongoDbId(id);
+const uploadImages = asyncHandler(async (req, res) => {
+    try {
+        const uploader = (path) => cloudinaryUploadImg(path, "images");
+        const urls = [];
+        const files = req.files;
 
-  try {
-    const uploader = (path) => cloudinaryUploadImg(path, 'images');
-    const urls = [];
-    const files = req.files;
+        for (const file of files) {
+            const { path } = file;
+            const newpath = await uploader(path);
+            urls.push(newpath);
+            fs.unlinkSync(path);
+        }
 
-    for (const file of files) {
-      const { path } = file;
-      const newpath = await uploader(path);
-      urls.push(newpath);
-      fs.unlinkSync(path);
+        const images = urls.map((file) => {
+            return file;
+        });
+        res.json(images);
+    } catch (error) {
+        throw new Error(error);
     }
-    const findProduct = await Product.findByIdAndUpdate(id, {
-      images: urls.map(file =>
-      {
-        return file;
-      })
-    },
-      {
-      new: true,
-      });
-    
-    res.json(findProduct);
-
-  } catch (error) {
-    throw new Error(error);
-  }
 });
-
 
 module.exports = {
-  createProduct,
-  getSingleProduct,
-  getAllProducts,
-  updateProduct,
-  deleteProduct,
-  addToWishlist,
-  rating,
-  uploadImages
+    createProduct,
+    getSingleProduct,
+    getAllProducts,
+    updateProduct,
+    deleteProduct,
+    addToWishlist,
+    rating,
+    uploadImages,
 };
