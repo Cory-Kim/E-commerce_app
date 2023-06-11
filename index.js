@@ -15,6 +15,7 @@ const brandRouter = require("./routes/brandRoute");
 const colorRouter = require("./routes/colorRoute");
 const enqRouter = require("./routes/enqRoute");
 const couponRouter = require("./routes/couponRoute");
+const uploadRouter = require("./routes/uploadRoute");
 const cors = require("cors");
 
 const morgan = require("morgan");
@@ -37,6 +38,7 @@ app.use("/api/brand", brandRouter);
 app.use("/api/coupon", couponRouter);
 app.use("/api/color", colorRouter);
 app.use("/api/enquiry", enqRouter);
+app.use("/api/upload", uploadRouter);
 
 // Have to pass error middleware after router middlewares
 app.use(notFound);
