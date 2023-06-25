@@ -186,15 +186,13 @@ const getAllProducts = asyncHandler(async (req, res) => {
 const addToWishlist = asyncHandler(async (req, res) => {
     const { _id } = req.user;
     const { prodId } = req.body;
-
     try {
         const user = await User.findById(_id);
-        const alreadyAdded = user.wishlist.find(
+        const alreadyadded = user.wishlist.find(
             (id) => id.toString() === prodId
         );
-
-        if (alreadyAdded) {
-            await User.findByIdAndUpdate(
+        if (alreadyadded) {
+            let user = await User.findByIdAndUpdate(
                 _id,
                 {
                     $pull: { wishlist: prodId },
@@ -203,8 +201,9 @@ const addToWishlist = asyncHandler(async (req, res) => {
                     new: true,
                 }
             );
+            res.json(user);
         } else {
-            await User.findByIdAndUpdate(
+            let user = await User.findByIdAndUpdate(
                 _id,
                 {
                     $push: { wishlist: prodId },
@@ -213,10 +212,8 @@ const addToWishlist = asyncHandler(async (req, res) => {
                     new: true,
                 }
             );
+            res.json(user);
         }
-
-        const updatedUser = await User.findById(_id);
-        res.json(updatedUser);
     } catch (error) {
         throw new Error(error);
     }
