@@ -20,11 +20,10 @@ const cors = require("cors");
 const corsMiddleware = require("./corsMiddleware").default;
 
 const morgan = require("morgan");
-
-dbConnect();
-
 app.use(cors());
 app.use(corsMiddleware());
+
+dbConnect();
 
 app.use(morgan("dev"));
 app.use(bodyParser.json());
